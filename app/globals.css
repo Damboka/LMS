@@ -82,3 +82,5 @@
     color: var(--foreground);
   }
 }
+
+@import "~@uploadthing/react/styles.css"
