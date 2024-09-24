@@ -2,13 +2,14 @@
   @tailwind components;
   @tailwind utilities;
 
-
   html,
   body,
   :root {
     height: 100%;
   }
-
+html {
+  scroll-behavior: smooth;
+}
   @layer base {
     :root {
       --background: 0 0% 100%;
@@ -83,4 +84,9 @@
   }
 }
 
+.ql-container {
+  font-size: 16 !important;
+}
+
 @import "~@uploadthing/react/styles.css"
+

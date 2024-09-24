@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import toast from "react-hot-toast"
-import { Course } from "@prisma/client"
+import { Chapter } from "@prisma/client"
 
 import {
     Form,
@@ -18,24 +18,25 @@ import {
     FormItem,
     FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { formatPrice } from "@/lib/format"
+import { Editor } from "@/components/editor"
+import { Preview } from "@/components/preview"
 
-interface PriceFormProps {
-    initialData: Course;
+interface ChapterDescriptionFormProps {
+    initialData: Chapter;
     courseId: string;
+    chapterId: string;
 };
 
 const formSchema = z.object({
-    price: z.coerce.number()
+    description: z.string().min(1),
 });
 
-export const PriceForm = ({
+export const ChapterDescriptionForm = ({
     initialData,
     courseId,
-}: PriceFormProps) => {
+    chapterId,
+}: ChapterDescriptionFormProps) => {
 
     const [isEditing, setIsEditing] = useState(false)
 
@@ -49,17 +50,16 @@ export const PriceForm = ({
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            price: initialData.price || undefined,
+            description: initialData.description || "",
         },
     });
 
     const { isSubmitting, isValid } = form.formState;
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        const priceValue = values.price === 0 ? null : values.price;
         try {
-            await axios.patch(`/api/courses/${courseId}`, values)
-            toast.success("Course price updated")
+            await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}`, values)
+            toast.success("Chapter updated")
             toggleEdit();
             router.refresh();
         } catch {
@@ -70,27 +70,29 @@ export const PriceForm = ({
     return (
         <div className="mt-6 border bg-slate-100 rounded-md p-4">
             <div className="font-medium flex items-center justify-between">
-                Course price
+                Chapter description
                 <Button variant="ghost" onClick={toggleEdit}>
                     {isEditing ? (
                         <>Cancel</>
                     ) : (
                         <>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Edit price
+                        Edit Description
                         </>
                     )}
                 </Button>
             </div>
             {!isEditing && (
-                <p className={cn("text-sm mt-2", 
-                    !initialData.price && "text-slate-500 italic"
+                <div className={cn("text-sm mt-2", 
+                    !initialData.description && "text-slate-500 italic"
                 )}>
-                    {initialData.price
-                    ? formatPrice(initialData.price)
-                    : "No price"
-                    }
-                </p>
+                    {!initialData.description && "No description"}
+                    {initialData.description && (
+                        <Preview
+                            value={initialData.description}
+                        />
+                    )}
+                </div>
             )}
             {isEditing && (
                 <Form {...form}>
@@ -100,15 +102,11 @@ export const PriceForm = ({
                     >
                         <FormField
                             control={form.control}
-                            name="price"
+                            name="description"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormControl>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            disabled={isSubmitting}
-                                            placeholder="Set a price for your course"
+                                        <Editor
                                             {...field}
                                         />
                                     </FormControl>

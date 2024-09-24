@@ -5,11 +5,6 @@ import axios from "axios"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form" 
 import { Pencil } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import toast from "react-hot-toast"
-import { Course } from "@prisma/client"
 
 import {
     Form,
@@ -20,22 +15,27 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { formatPrice } from "@/lib/format"
+import { useState } from "react"
+import toast from "react-hot-toast"
+import { useRouter } from "next/navigation"
 
-interface PriceFormProps {
-    initialData: Course;
+interface ChapterTitleFormProps {
+    initialData: {
+        title: string;
+    };
     courseId: string;
+    chapterId: string;
 };
 
 const formSchema = z.object({
-    price: z.coerce.number()
+    title: z.string().min(1),
 });
 
-export const PriceForm = ({
+export const ChapterTitleForm = ({
     initialData,
     courseId,
-}: PriceFormProps) => {
+    chapterId,
+}: ChapterTitleFormProps) => {
 
     const [isEditing, setIsEditing] = useState(false)
 
@@ -48,18 +48,15 @@ export const PriceForm = ({
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            price: initialData.price || undefined,
-        },
+        defaultValues: initialData,
     });
 
     const { isSubmitting, isValid } = form.formState;
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        const priceValue = values.price === 0 ? null : values.price;
         try {
-            await axios.patch(`/api/courses/${courseId}`, values)
-            toast.success("Course price updated")
+            await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}`, values)
+            toast.success("Chapter updated")
             toggleEdit();
             router.refresh();
         } catch {
@@ -70,26 +67,21 @@ export const PriceForm = ({
     return (
         <div className="mt-6 border bg-slate-100 rounded-md p-4">
             <div className="font-medium flex items-center justify-between">
-                Course price
+                Chapter Title
                 <Button variant="ghost" onClick={toggleEdit}>
                     {isEditing ? (
                         <>Cancel</>
                     ) : (
                         <>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Edit price
+                        Edit Title
                         </>
                     )}
                 </Button>
             </div>
             {!isEditing && (
-                <p className={cn("text-sm mt-2", 
-                    !initialData.price && "text-slate-500 italic"
-                )}>
-                    {initialData.price
-                    ? formatPrice(initialData.price)
-                    : "No price"
-                    }
+                <p className="text-sm mt-2">
+                    {initialData.title}
                 </p>
             )}
             {isEditing && (
@@ -100,15 +92,13 @@ export const PriceForm = ({
                     >
                         <FormField
                             control={form.control}
-                            name="price"
+                            name="title"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormControl>
                                         <Input
-                                            type="number"
-                                            step="0.01"
                                             disabled={isSubmitting}
-                                            placeholder="Set a price for your course"
+                                            placeholder="e.g 'Introduction to the course'"
                                             {...field}
                                         />
                                     </FormControl>

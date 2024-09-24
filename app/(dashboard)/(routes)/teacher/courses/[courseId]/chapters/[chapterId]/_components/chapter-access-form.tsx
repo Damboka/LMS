@@ -9,33 +9,37 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import toast from "react-hot-toast"
-import { Course } from "@prisma/client"
+import { Chapter } from "@prisma/client"
+import { Checkbox } from "@/components/ui/checkbox"
+
 
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { formatPrice } from "@/lib/format"
+import { Editor } from "@/components/editor"
+import { Preview } from "@/components/preview"
 
-interface PriceFormProps {
-    initialData: Course;
+interface ChapterAccessFormProps {
+    initialData: Chapter;
     courseId: string;
+    chapterId: string;
 };
 
 const formSchema = z.object({
-    price: z.coerce.number()
+    isFree: z.boolean().default(false),
 });
 
-export const PriceForm = ({
+export const ChapterAccessForm = ({
     initialData,
     courseId,
-}: PriceFormProps) => {
+    chapterId,
+}: ChapterAccessFormProps) => {
 
     const [isEditing, setIsEditing] = useState(false)
 
@@ -49,17 +53,16 @@ export const PriceForm = ({
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            price: initialData.price || undefined,
+            isFree: !!initialData.isFree
         },
     });
 
     const { isSubmitting, isValid } = form.formState;
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        const priceValue = values.price === 0 ? null : values.price;
         try {
-            await axios.patch(`/api/courses/${courseId}`, values)
-            toast.success("Course price updated")
+            await axios.patch(`/api/courses/${courseId}/chapters/${chapterId}`, values)
+            toast.success("Chapter updated")
             toggleEdit();
             router.refresh();
         } catch {
@@ -70,26 +73,27 @@ export const PriceForm = ({
     return (
         <div className="mt-6 border bg-slate-100 rounded-md p-4">
             <div className="font-medium flex items-center justify-between">
-                Course price
+                Chapter access settings
                 <Button variant="ghost" onClick={toggleEdit}>
                     {isEditing ? (
                         <>Cancel</>
                     ) : (
                         <>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Edit price
+                        Edit access
                         </>
                     )}
                 </Button>
             </div>
             {!isEditing && (
                 <p className={cn("text-sm mt-2", 
-                    !initialData.price && "text-slate-500 italic"
+                    !initialData.isFree && "text-slate-500 italic"
                 )}>
-                    {initialData.price
-                    ? formatPrice(initialData.price)
-                    : "No price"
-                    }
+                    {initialData.isFree ? (
+                        <>This chapter is free for preview</>
+                    ): (
+                        <>This chapter is not free for preview</>
+                    )}
                 </p>
             )}
             {isEditing && (
@@ -100,20 +104,22 @@ export const PriceForm = ({
                     >
                         <FormField
                             control={form.control}
-                            name="price"
+                            name="isFree"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
                                     <FormControl>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            disabled={isSubmitting}
-                                            placeholder="Set a price for your course"
-                                            {...field}
+                                        <Checkbox
+                                        className="rounded-[4px]"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
                                         />
                                     </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                        <div className="space-y-1 leading-none">
+                                        <FormDescription>
+                                            Check this box if you want to make this chapter free for preview
+                                        </FormDescription>
+                                        </div>
+                                    </FormItem>
                             )}
                         />
                         <div className="flex items-center gap-x-2">
@@ -126,7 +132,7 @@ export const PriceForm = ({
                         </div>
 
                     </form>
-                </Form>
+            </Form>
             )}
         </div>
     )
